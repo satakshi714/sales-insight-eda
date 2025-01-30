@@ -1,60 +1,75 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 
-# Set Page Title
-st.set_page_config(page_title="Sales Insights Dashboard", layout="wide")
+# ✅ Function to load and clean data
+@st.cache_data
+def load_data(file_path):
+    # Load CSV
+    df = pd.read_csv(file_path, encoding="utf-8", low_memory=False)
 
-# Load Data
-@st.cache_data  # Caching to improve performance
-def load_data():
-    df = pd.read_csv("all_data.csv")  # Replace with your dataset file name
-    df["Order Date"] = pd.to_datetime(df["Order Date"])  # Ensure correct date format
+    # ✅ Standardize column names (remove leading/trailing spaces)
+    df.columns = df.columns.str.strip()
+
+    # ✅ Check if "Order Date" exists
+    if "Order Date" not in df.columns:
+        st.error("❌ 'Order Date' column not found in dataset!")
+        st.stop()
+
+    # ✅ Trim spaces in "Order Date" values
+    df["Order Date"] = df["Order Date"].astype(str).str.strip()
+
+    # ✅ Convert to datetime safely
+    df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce", infer_datetime_format=True)
+
+    # ✅ Find and log invalid dates
+    invalid_dates = df[df["Order Date"].isna()]
+    if not invalid_dates.empty:
+        st.warning(f"⚠️ Found {len(invalid_dates)} invalid date entries!")
+        st.write(invalid_dates[["Order Date"]])
+
+    # ✅ Remove invalid dates
+    df.dropna(subset=["Order Date"], inplace=True)
+    df.columns = df.columns.str.strip()  # Remove column name spaces
+    df = df[df["Order Date"].notnull()]  # Drop empty date rows
+    df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce")  # Convert & ignore errors
+    df = df.dropna(subset=["Order Date"])  # Remove rows where conversion failed
+
+
     return df
 
-df = load_data()
+# ✅ Streamlit UI
+st.title("📊 Sales Insights EDA")
 
-# Sidebar - User Inputs
-st.sidebar.header("Filters")
-selected_category = st.sidebar.selectbox("Select Product Category", df["Category"].unique())
+# Hardcoded file path (update this to the location of your file)
+file_path = 'F:\\SalesInsightEDA\\all_data.csv'
 
-# Filter Data
-filtered_data = df[df["Category"] == selected_category]
+# Load the data directly
+df = load_data(file_path)
 
-# Dashboard Title
-st.title("📊 Sales Insights Dashboard")
-st.write("## Overview of Sales Data")
-st.dataframe(df.head())  # Show raw data preview
+# ✅ Show cleaned dataset
+st.write("### 🔍 Cleaned Data Preview")
+st.dataframe(df.head())
 
-# Key Metrics
-st.write("## 📌 Key Metrics")
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Sales", f"${df['Sales'].sum():,.2f}")
-col2.metric("Total Orders", df.shape[0])
-col3.metric("Total Profit", f"${df['Profit'].sum():,.2f}")
+# ✅ Sidebar Filters
+st.sidebar.header("🔍 Filters")
 
-# Sales Trend Chart
-st.write("## 📈 Sales Over Time")
-fig, ax = plt.subplots(figsize=(10, 4))
-df.groupby("Order Date")["Sales"].sum().plot(ax=ax, color="blue", marker="o")
-ax.set_xlabel("Date")
-ax.set_ylabel("Total Sales")
-st.pyplot(fig)
+# ✅ Check if "Product" column exists
+if "Product" in df.columns:
+    selected_product = st.sidebar.selectbox("Select Product", df["Product"].unique())
+    df_filtered = df[df["Product"] == selected_product]
+else:
+    st.sidebar.warning("⚠️ 'Product' column not found!")
+    df_filtered = df
 
-# Category-wise Sales
-st.write("## 📊 Sales by Category")
-fig, ax = plt.subplots(figsize=(8, 4))
-sns.barplot(x=df["Category"], y=df["Sales"], ax=ax, palette="coolwarm")
-ax.set_xlabel("Category")
-ax.set_ylabel("Total Sales")
-st.pyplot(fig)
+# ✅ Display filtered data
+st.write(f"### 📌 Data for {selected_product}")
+st.dataframe(df_filtered)
 
-# Show Filtered Data
-st.write(f"## 🔍 Sales Data for {selected_category}")
-st.dataframe(filtered_data)
-
-# Footer
-st.markdown("---")
-st.markdown("👩‍💻 **Developed by Satakshi**")
-
+# ✅ Compute & Display Sales Summary
+if "Quantity Ordered" in df.columns and "Price Each" in df.columns:
+    df_filtered["Quantity Ordered"] = pd.to_numeric(df_filtered["Quantity Ordered"], errors="coerce")
+    df_filtered["Price Each"] = pd.to_numeric(df_filtered["Price Each"], errors="coerce")
+    df_filtered["Total Sales"] = df_filtered["Quantity Ordered"] * df_filtered["Price Each"]
+    st.write(f"### 💰 Total Sales for {selected_product}: **₹{df_filtered['Total Sales'].sum():,.2f}**")
+else:
+    st.warning("⚠️ Sales calculation columns not found!")

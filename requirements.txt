@@ -119,7 +119,7 @@ smmap==5.0.1
 sniffio==1.3.1
 soupsieve==2.6
 sqlparse==0.4.3
--e git+https://github.com/sa-satakshi/datasciencecoursera.git@5d7156baa6a708c0c75c172d8ca020e8b528266d#egg=src&subdirectory=recommendation system
+-e git+https://github.com/satakshi714/sales-insight-eda.git@31e7fb4d55530e32f4f62bccae1726693b1f566c#egg=sales-insight-eda system
 stack-data==0.6.3
 streamlit==1.39.0
 tenacity==9.0.0
@@ -144,6 +144,3 @@ websocket-client==1.8.0
 websockets==14.2
 Werkzeug==3.1.3
 widgetsnbextension==4.0.10
-scikit-learn 
-plotly 
-openpyxl
