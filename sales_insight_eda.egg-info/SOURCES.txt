@@ -1,0 +1,6 @@
+setup.py
+sales_insight_eda.egg-info/PKG-INFO
+sales_insight_eda.egg-info/SOURCES.txt
+sales_insight_eda.egg-info/dependency_links.txt
+sales_insight_eda.egg-info/requires.txt
+sales_insight_eda.egg-info/top_level.txt
